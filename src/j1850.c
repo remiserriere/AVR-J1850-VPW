@@ -94,18 +94,16 @@ uint8_t j1850_recv_msg(uint8_t *msg_buf )
 		wait for responds
 	*/
 
-	//serial_log('A');
 	timer1_start();	
 	while(!is_j1850_active())	// run as long bus is passive (IDLE)
 	{
 		if(TCNT1 >= WAIT_100us)	// check for 100us
 		{
 			timer1_stop();
-			//serial_log('B');
 			return J1850_RETURN_CODE_NO_DATA | 0x80;	// error, no responds within 100us
 		}
 	}
-timer1_stop();
+	timer1_stop();
 	// wait for SOF
 	timer1_start();	// restart timer1
 	while(is_j1850_active())	// run as long bus is active (SOF is an active symbol)

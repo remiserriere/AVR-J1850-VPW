@@ -187,8 +187,6 @@ void ident(void)
 	serial_puts_P(ident_txt);  // show code description
 }
 
-
-
 /*
 **---------------------------------------------------------------------------
 **
@@ -218,8 +216,6 @@ static uint8_t ascii2byte(char *val)
 	return temp;
 
 }
-
-
 
 /*
 **---------------------------------------------------------------------------
@@ -304,7 +300,7 @@ int8_t serial_processing(void)
 				return J1850_RETURN_CODE_UNKNOWN; 
 		
 			case 'd':  // set defaults
-				parameter_bits = ECHO|RESPONSE|AUTO_RECV;
+				parameter_bits = HEADER|RESPONSE|AUTO_RECV;
 				timeout_multiplier = 0x19;	// set default timeout to 4ms * 25 = 100ms
 				j1850_req_header[0] = 0x68;  // Prio 3, Functional Adressing
 				j1850_req_header[1] = 0x6A;  // Target legislated diagnostic
@@ -397,7 +393,7 @@ int8_t serial_processing(void)
 					return J1850_RETURN_CODE_DATA;
 				}
 
-			case 's': // commands SH,SR or ST
+			case 's': // commands SH,SR or ST, or SD
 				if(	isxdigit(*(serial_msg_pntr+4)) && isxdigit(*(serial_msg_pntr+5)) )
 				{  // proceed when next two chars are hex
 					switch(*(serial_msg_pntr+3))
@@ -668,7 +664,6 @@ int8_t serial_processing(void)
 	return J1850_RETURN_CODE_UNKNOWN;
 } // end serial_processing
 
-
 /*
 **---------------------------------------------------------------------------
 **
@@ -741,8 +736,7 @@ void serial_puts_P(const char *s)
 **---------------------------------------------------------------------------
 */
 //SIGNAL(SIG_UART_RECV)
-/* USART, Rx Complete */
-			
+/* USART, Rx Complete */		
 ISR(_VECTOR(11))
 {
 	uint8_t *hlp_pntr = &serial_msg_buf[sizeof(serial_msg_buf)-1];  // get end of serial buffer
@@ -832,7 +826,6 @@ ISR(_VECTOR(11))
 		}
   }
 };// end of UART receive interrupt
-
 
 /*
 **---------------------------------------------------------------------------

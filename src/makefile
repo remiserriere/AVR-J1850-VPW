@@ -53,13 +53,15 @@ MCU_XTAL = 7372800
 # Output format. (can be srec, ihex, binary)
 FORMAT = ihex
 
+# Target build path
+BUILDPATH = build
 
 # Target file name (without extension).
 TARGET = main
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = j1850.c $(TARGET).c
+SRC = j1850.c main.c
 
 
 # List Assembler source files here.
@@ -98,7 +100,6 @@ EXTRAINCDIRS =
 #     c99   = ISO C99 standard (not yet fully implemented)
 #     gnu99 = c99 plus GCC extensions
 CSTANDARD = -std=gnu99
-#CSTANDARD = -std=gnu++11
 
 
 # Place -D or -U options here
@@ -122,7 +123,7 @@ CFLAGS += $(CDEFS) $(CINCS)
 CFLAGS += -O$(OPT)
 CFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -mcall-prologues
 CFLAGS += -Wall -Wstrict-prototypes
-CFLAGS += -Wa,-adhlns=$(<:.c=.lst)
+CFLAGS += -Wa,-adhlns=$(BUILDPATH)/$(<:.c=.lst)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
 #CFLAGS += -save-temps
@@ -134,7 +135,7 @@ CFLAGS += $(CSTANDARD)
 #             for use in COFF files, additional information about filenames
 #             and function names needs to be present in the assembler source
 #             files -- see avr-libc docs [FIXME: not yet described there]
-ASFLAGS = -Wa,-adhlns=$(<:.S=.lst),-gstabs 
+ASFLAGS = -Wa,-adhlns=$(BUILDPATH)/$(<:.S=.lst),-gstabs 
 
 
 #---------------- Library Options ----------------
@@ -184,7 +185,7 @@ EXTMEMOPTS =
 #  -Wl,...:     tell GCC to pass this to linker.
 #    -Map:      create map file
 #    --cref:    add cross reference to  map file
-LDFLAGS = -Wl,-Map=$(TARGET).map,--cref
+LDFLAGS = -Wl,-Map=$(BUILDPATH)/$(TARGET).map,--cref
 LDFLAGS += $(EXTMEMOPTS)
 LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 
@@ -296,10 +297,12 @@ MSG_CLEANING = Cleaning project:
 
 
 # Define all object files.
-OBJ = $(SRC:.c=.o) $(ASRC:.S=.o) 
+OBJ = $(SRC:.c=.o)
+#OBJ = $(addprefix $(BUILDPATH)/, $(SRC:.c=.o))
 
 # Define all listing files.
-LST = $(SRC:.c=.lst) $(ASRC:.S=.lst) 
+LST = $(SRC:.c=.lst)  
+#LST = $(addprefix $(BUILDPATH)/, $(SRC:.c=.lst))
 
 
 # Compiler flags to generate dependency files.
@@ -321,11 +324,11 @@ all: begin gccversion sizebefore build sizeafter end
 build: elf hex bin eep lss sym
 
 elf: $(TARGET).elf
-hex: $(TARGET).hex
-bin: $(TARGET).bin
-eep: $(TARGET).eep
-lss: $(TARGET).lss 
-sym: $(TARGET).sym
+hex: $(BUILDPATH)/$(TARGET).hex
+bin: $(BUILDPATH)/$(TARGET).bin
+eep: $(BUILDPATH)/$(TARGET).eep
+lss: $(BUILDPATH)/$(TARGET).lss 
+sym: $(BUILDPATH)/$(TARGET).sym
 
 
 
@@ -335,6 +338,8 @@ sym: $(TARGET).sym
 begin:
 	@echo
 	@echo $(MSG_BEGIN)
+	@echo Creating build directory if not exists
+	mkdir -p $(BUILDPATH)
 
 end:
 	@echo $(MSG_END)
@@ -342,17 +347,17 @@ end:
 
 
 # Display size of file.
-HEXSIZE = $(SIZE) --target=$(FORMAT) $(TARGET).hex
+HEXSIZE = $(SIZE) --target=$(FORMAT) $(BUILDPATH)/$(TARGET).hex
 #ELFSIZE = $(SIZE) -A $(TARGET).elf
-ELFSIZE = $(SIZE) --format=avr --mcu=$(MCU) $(TARGET).elf
+ELFSIZE = $(SIZE) --format=avr --mcu=$(MCU) $(BUILDPATH)/$(TARGET).elf
 #AVRMEM = avr-mem.sh $(TARGET).elf $(MCU)
 
 sizebefore:
-	@if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_BEFORE); $(ELFSIZE); \
+	@if test -f $(BUILDPATH)/$(TARGET).elf; then echo; echo $(MSG_SIZE_BEFORE); $(ELFSIZE); \
 	$(AVRMEM) 2>/dev/null; echo; fi
 
 sizeafter: 
-	@if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_AFTER); $(ELFSIZE); \
+	@if test -f $(BUILDPATH)/$(TARGET).elf; then echo; echo $(MSG_SIZE_AFTER); $(ELFSIZE); \
 	$(AVRMEM) 2>/dev/null; echo; fi
 
 
@@ -364,7 +369,7 @@ gccversion :
 
 
 # Program the device.  
-program: $(TARGET).hex $(TARGET).eep
+program: $(BUILDPATH)/$(TARGET).hex $(BUILDPATH)/$(TARGET).eep
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
 
 
@@ -376,18 +381,18 @@ gdb-config:
 	@echo define reset >> $(GDBINIT_FILE)
 	@echo SIGNAL SIGHUP >> $(GDBINIT_FILE)
 	@echo end >> $(GDBINIT_FILE)
-	@echo file $(TARGET).elf >> $(GDBINIT_FILE)
+	@echo file $(BUILDPATH)/$(TARGET).elf >> $(GDBINIT_FILE)
 	@echo target remote $(DEBUG_HOST):$(DEBUG_PORT)  >> $(GDBINIT_FILE)
 ifeq ($(DEBUG_BACKEND),simulavr)
 	@echo load  >> $(GDBINIT_FILE)
 endif	
 	@echo break main >> $(GDBINIT_FILE)
 	
-debug: gdb-config $(TARGET).elf
+debug: gdb-config $(BUILDPATH)/$(TARGET).elf
 ifeq ($(DEBUG_BACKEND), avarice)
 	@echo Starting AVaRICE - Press enter when "waiting to connect" message displays.
 	@$(WINSHELL) /c start avarice --jtag $(JTAG_DEV) --erase --program --file \
-	$(TARGET).elf $(DEBUG_HOST):$(DEBUG_PORT)
+	$(BUILDPATH)/$(TARGET).elf $(DEBUG_HOST):$(DEBUG_PORT)
 	@$(WINSHELL) /c pause
 	
 else
@@ -409,14 +414,14 @@ COFFCONVERT=$(OBJCOPY) --debugging \
 
 coff: $(TARGET).elf
 	@echo
-	@echo $(MSG_COFF) $(TARGET).cof
-	$(COFFCONVERT) -O coff-avr $< $(TARGET).cof
+	@echo $(MSG_COFF) $(BUILDPATH)/$(TARGET).cof
+	$(COFFCONVERT) -O coff-avr $< $(BUILDPATH)/$(TARGET).cof
 
 
 extcoff: $(TARGET).elf
 	@echo
-	@echo $(MSG_EXTENDED_COFF) $(TARGET).cof
-	$(COFFCONVERT) -O coff-ext-avr $< $(TARGET).cof
+	@echo $(MSG_EXTENDED_COFF) $(BUILDPATH)/$(TARGET).cof
+	$(COFFCONVERT) -O coff-ext-avr $< $(BUILDPATH)/$(TARGET).cof
 
 
 
@@ -455,32 +460,32 @@ extcoff: $(TARGET).elf
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(OBJ)
 %.elf: $(OBJ)
-	@echo
 	@echo $(MSG_LINKING) $@
-	$(CC) $(ALL_CFLAGS) $^ --output $@ $(LDFLAGS)
+	$(CC) $(ALL_CFLAGS) $(addprefix $(BUILDPATH)/, $^) --output $(BUILDPATH)/$@ $(LDFLAGS)
 
 
 # Compile: create object files from C source files.
 %.o : %.c
 	@echo
 	@echo $(MSG_COMPILING) $<
-	$(CC) -c $(ALL_CFLAGS) $< -o $@ 
+	$(CC) -c $(ALL_CFLAGS) $< -o $(BUILDPATH)/$@ 
 
 
 # Compile: create assembler files from C source files.
 %.s : %.c
-	$(CC) -S $(ALL_CFLAGS) $< -o $@
+	@echo Create assembler files from C source files
+	$(CC) -S $(ALL_CFLAGS) $< -o $(BUILDPATH)/$@
 
 
 # Assemble: create object files from assembler source files.
 %.o : %.S
 	@echo
 	@echo $(MSG_ASSEMBLING) $<
-	$(CC) -c $(ALL_ASFLAGS) $< -o $@
+	$(CC) -c $(ALL_ASFLAGS) $< -o $(BUILDPATH)/$@
 
 # Create preprocessed source for use in sending a bug report.
 %.i : %.c
-	$(CC) -E -mmcu=$(MCU) -I. $(CFLAGS) $< -o $@ 
+	$(CC) -E -mmcu=$(MCU) -I. $(CFLAGS) $< -o $(BUILDPATH)/$@ 
 
 
 # Target: clean project.
@@ -489,15 +494,15 @@ clean: begin clean_list end
 clean_list :
 	@echo
 	@echo $(MSG_CLEANING)
-	$(REMOVE) $(TARGET).hex
-	$(REMOVE) $(TARGET).bin
-	$(REMOVE) $(TARGET).eep
-	$(REMOVE) $(TARGET).cof
-	$(REMOVE) $(TARGET).elf
-	$(REMOVE) $(TARGET).map
-	$(REMOVE) $(TARGET).sym
-	$(REMOVE) $(TARGET).lss
-	$(REMOVE) $(TARGET).i
+	$(REMOVE) $(BUILDPATH)/$(TARGET).hex
+	$(REMOVE) $(BUILDPATH)/$(TARGET).bin
+	$(REMOVE) $(BUILDPATH)/$(TARGET).eep
+	$(REMOVE) $(BUILDPATH)/$(TARGET).cof
+	$(REMOVE) $(BUILDPATH)/$(TARGET).elf
+	$(REMOVE) $(BUILDPATH)/$(TARGET).map
+	$(REMOVE) $(BUILDPATH)/$(TARGET).sym
+	$(REMOVE) $(BUILDPATH)/$(TARGET).lss
+	$(REMOVE) $(BUILDPATH)/$(TARGET).i
 	$(REMOVE) $(OBJ)
 	$(REMOVE) $(LST)
 	$(REMOVE) $(SRC:.c=.s)

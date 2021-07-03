@@ -20,7 +20,6 @@
 **************************************************************************/
 #ifndef __MAIN_H__
 #define __MAIN_H__
-#define MCU_XTAL 7372800
 
 // Set default RS232 baud rate
 #define BAUD_RATE    115200
@@ -57,7 +56,7 @@ const char stopped[]    PROGMEM = "STOPPED\r";
 #define USE_OBH   0x0200 // bit 9 : use one byte header in Tx message
 
 // use of bit-mask for parameters init to default values
-volatile uint16_t parameter_bits = ECHO|RESPONSE|AUTO_RECV;
+volatile uint16_t parameter_bits = HEADER|RESPONSE|AUTO_RECV;
 //volatile uint16_t parameter_bits = HEADER|LINEFEED|RESPONSE|AUTO_RECV;
 
 uint8_t j1850_req_header[3] = {0x68, 0x6A, 0xF1};  // default request header
