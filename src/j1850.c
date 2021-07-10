@@ -171,7 +171,7 @@ uint8_t j1850_recv_msg(uint8_t *msg_buf )
 */ 
 uint8_t j1850_send_msg(uint8_t *msg_buf, int8_t nbytes)
 {
-	if(nbytes > 12)	return J1850_RETURN_CODE_DATA_ERROR;	// error, message to long, see SAE J1850
+	//if(nbytes > 12)	return J1850_RETURN_CODE_DATA_ERROR;	// error, message to long, see SAE J1850
 
 	j1850_wait_idle();	// wait for idle bus
 

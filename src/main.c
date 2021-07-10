@@ -113,7 +113,7 @@ int16_t main( void )
 					// Setting the 3 first bytes of the answer
 					j1850_snd_buf[0] = 0x26;
 					j1850_snd_buf[1] = 0x61;
-					j1850_snd_buf[2] = j1850_rcv_buf[2] || 0x40;
+					j1850_snd_buf[2] = j1850_rcv_buf[2] + 0x40;
 
 					// Which mode is requested?
 					switch (j1850_rcv_buf[2])
@@ -141,17 +141,45 @@ int16_t main( void )
 						}
 						break;
 					case 0x22: // debug
-						serial_puts_P(PSTR("DBG"));
-						serial_putc('#');
+						switch (j1850_rcv_buf[3])
+						{
+						case 0x01 ... 0x04: // GPS Status, current mode and submenu, buffer from VFD, buffer to VFD
+							serial_puts_P(PSTR("DBG"));
+							serial_put_byte2ascii(j1850_rcv_buf[3]);
+							serial_putc('#');
+							break;
+						case 0x05 ... 0x06: // send buffer to vfd, 5 first bytes
+							j1850_snd_buf[3] = j1850_rcv_buf[3];
+
+							for (uint8_t i = 0; i < 5; i++) {
+								debugBufferToVFD[(j1850_rcv_buf[3] == 0x05) ? i : i + 5] = j1850_rcv_buf[i + 4];
+								j1850_snd_buf[i + 4] = j1850_rcv_buf[i + 4];
+							}
+							j1850_snd_len = 9;
+
+							// Sending to LHEC
+							if (j1850_rcv_buf[3] == 0x06) {
+								serial_puts_P(PSTR("DBG"));
+								serial_put_byte2ascii(j1850_rcv_buf[3]);
+								for (uint8_t j = 0; j < 10; j++) {
+									serial_put_byte2ascii(debugBufferToVFD[j]);
+								}
+								serial_putc('#');
+							}
+							break;
+						default:
+							goto error;
+							break;
+						}
 						break;
 					case 0x2f: // config write
 						//serial_puts_P(cfgw);
 						serial_puts_P(PSTR("CFGW"));
+						serial_put_byte2ascii(j1850_rcv_buf[3]);
 						serial_put_byte2ascii(j1850_rcv_buf[4]);
 						serial_put_byte2ascii(j1850_rcv_buf[5]);
 						serial_put_byte2ascii(j1850_rcv_buf[6]);
 						serial_put_byte2ascii(j1850_rcv_buf[7]);
-						serial_put_byte2ascii(j1850_rcv_buf[8]);
 						serial_putc('#');
 						break;
 					default: // error
@@ -274,7 +302,7 @@ int8_t serial_processing(void)
 					SETBIT(parameter_bits, HEADER);
 				return J1850_RETURN_CODE_OK ;
 
-			case 's': // commands SH,SR or ST, or SD
+			case 's': // commands SH, SR or SD
 				if(	isxdigit(*(serial_msg_pntr+4)) && isxdigit(*(serial_msg_pntr+5)) )
 				{  // proceed when next two chars are hex
 					switch(*(serial_msg_pntr+3))
@@ -297,6 +325,12 @@ int8_t serial_processing(void)
 							
 							// generate CRC for J1850 message and store, use 1 or 3 byte header
 							j1850_msg_buf[j1850_msg_len] = j1850_crc( j1850_msg_buf,j1850_msg_len );  
+
+							serial_putc('\r');
+							for (uint8_t i = 0; i <= j1850_msg_len; i++) {
+								serial_put_byte2ascii(j1850_msg_buf[i]);
+							}
+							serial_putc('\r');
 						  
 							// send J1850 message and save return code, use 1 or 3 byte header
 							return j1850_send_msg(j1850_msg_buf, j1850_msg_len +1);

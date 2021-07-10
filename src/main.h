@@ -27,16 +27,19 @@
 // J1850 message (max 12 byte - 3 byte header - 1 CRC byte) x 2
 // because of 2 ASCII chars/byte + 1 terminator
 // or 10 bytes for AT command
-#define SERIAL_MSG_BUF_SIZE	18
+#define SERIAL_MSG_BUF_SIZE	36
 
+// Texts
 const char ident_txt[]    PROGMEM = "AVR-J1850 VPW v1.08\r" __DATE__" / "__TIME__"\r\r";
 //const char ident_txt[]    PROGMEM = "ELM322 v2.0\r\n\r\n";
-
 const char bus_busy_txt[]   PROGMEM = "BUSBUSY\r";
 const char bus_error_txt[]  PROGMEM = "BUSERROR\r";
 const char data_error_txt[] PROGMEM = "<DATAERROR\r";
 const char no_data_txt[]    PROGMEM = "NO DATA\r";
 const char stopped[]    PROGMEM = "STOPPED\r";
+
+// Debug send specific buffer to VFD - 10 bytes array
+uint8_t debugBufferToVFD[10];
 
 // define bit macros
 #define SETBIT(x,y) (x |= (y)) 		// Set bit y in byte x
