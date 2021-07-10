@@ -95,71 +95,82 @@ int16_t main( void )
 
 	for(;;)
 	{
-		while( CHECKBIT(parameter_bits, MON_RX) || CHECKBIT(parameter_bits, MON_TX) || CHECKBIT(parameter_bits, MON_OBH))
+		while(1)
 		{
-			uint8_t j1850_msg_buf[12];  // J1850 message buffer
-			uint8_t *j1850_msg_pntr = &j1850_msg_buf[0];  //  msg pointer
+			uint8_t j1850_rcv_buf[12];  // J1850 message buffer
+			uint8_t j1850_snd_buf[12];  // J1850 message buffer
+			uint8_t j1850_snd_len = 0;
 			int8_t recv_nbytes;  // byte counter		
       
-			recv_nbytes = j1850_recv_msg(j1850_msg_buf);	// get J1850 frame
+			recv_nbytes = j1850_recv_msg(j1850_rcv_buf);	// get J1850 frame
 		
 			if( !(recv_nbytes & 0x80) ) // proceed only with no errors
 			{
-				j1850_msg_pntr = &j1850_msg_buf[0];
-			
-				// check for respond from correct addr or monitor all mode
-				if( (CHECKBIT(parameter_bits, MON_RX) && CHECKBIT(parameter_bits, MON_TX))
-				    ||
-					((mon_receiver == *(j1850_msg_pntr+1)) && CHECKBIT(parameter_bits, MON_RX) )
-					||
-					((mon_transmitter == *(j1850_msg_pntr+2)) && CHECKBIT(parameter_bits, MON_TX) )
-					||
-					((mon_transmitter == *(j1850_msg_pntr)) && CHECKBIT(parameter_bits, MON_OBH) )
-					)
+				
+				// Are you talking to me?
+				if ((0x24 == j1850_rcv_buf[0]) && (0x61 == j1850_rcv_buf[1]))
 				{
-					// surpess CRC and header bytes output
-					if( !CHECKBIT(parameter_bits, HEADER) )
-					{ 
-						if( CHECKBIT(parameter_bits, MON_OBH) ||  // check if one byte header frames are used
-							CHECKBIT(parameter_bits, USE_OBH)
-						   )
+					// Setting the 3 first bytes of the answer
+					j1850_snd_buf[0] = 0x26;
+					j1850_snd_buf[1] = 0x61;
+					j1850_snd_buf[2] = j1850_rcv_buf[2] || 0x40;
+
+					// Which mode is requested?
+					switch (j1850_rcv_buf[2])
+					{
+					case 0x21:
+						switch (j1850_rcv_buf[3])
 						{
-						  recv_nbytes -= 2;  // discard 1st header byte and CRC
-						  j1850_msg_pntr += 1;  // skip header byte
+						case 0x00: // Are you alive?
+							j1850_snd_buf[3] = 0x00; // Yes I am
+							j1850_snd_len = 4;
+							break;
+						case 0x01: //Asking for LHEC build number
+							//serial_puts_P(cfgv);
+							serial_puts_P(PSTR("CFGV"));
+							serial_putc('#');
+							break;
+						case 0x02: // Asking for LHEC config
+							//serial_puts_P(cfgr);
+							serial_puts_P(PSTR("CFGR"));
+							serial_putc('#');
+							break;
+						default:
+							goto error;
+							break;
 						}
-						else
-						{
-						  recv_nbytes -= 4;  // discard 3 header bytes and CRC
-						  j1850_msg_pntr += 3;  // skip 3 header bytes
-						}
+						break;
+					case 0x22: // debug
+						serial_puts_P(PSTR("DBG"));
+						serial_putc('#');
+						break;
+					case 0x2f: // config write
+						//serial_puts_P(cfgw);
+						serial_puts_P(PSTR("CFGW"));
+						serial_put_byte2ascii(j1850_rcv_buf[4]);
+						serial_put_byte2ascii(j1850_rcv_buf[5]);
+						serial_put_byte2ascii(j1850_rcv_buf[6]);
+						serial_put_byte2ascii(j1850_rcv_buf[7]);
+						serial_put_byte2ascii(j1850_rcv_buf[8]);
+						serial_putc('#');
+						break;
+					default: // error
+						error:
+						j1850_snd_buf[2] = 0x3f;
+						j1850_snd_buf[3] = 0x00;
+						j1850_snd_buf[4] = 0x00;
+						j1850_snd_buf[5] = 0x00;
+						j1850_snd_len = 6;
+						break;
 					}
 
-					if(CHECKBIT(parameter_bits, PACKED))
-					{ // check respond CRC
-						if( *(j1850_msg_pntr+(recv_nbytes-1)) == j1850_crc(j1850_msg_buf, recv_nbytes-1) )
-							serial_putc(recv_nbytes);  // length byte
-						else
-							serial_putc(recv_nbytes&0x80);  // length byte with error indicator set
+					if(j1850_snd_len > 0){
+						// generate CRC for J1850 message and store, use 1 or 3 byte header
+						j1850_snd_buf[j1850_snd_len] = j1850_crc(j1850_snd_buf, j1850_snd_len);
+
+						// send J1850 message and save return code, use 1 or 3 byte header
+						j1850_send_msg(j1850_snd_buf, j1850_snd_len + 1);
 					}
-     
-					// output response data
-					for(;recv_nbytes > 0; recv_nbytes--)
-					{
-						if(CHECKBIT(parameter_bits, PACKED))
-							serial_putc(*j1850_msg_pntr++);  // data byte
-						else
-						{
-							serial_put_byte2ascii(*j1850_msg_pntr++);
-							serial_putc(' ');
-						}
-					}
-     			
-					if(!CHECKBIT(parameter_bits, PACKED))
-					{// formated output with CR and optional LF
-						serial_putc('\r');
-						if(CHECKBIT(parameter_bits, LINEFEED)) serial_putc('\n');
-					}					
-					
 				}  // end if valid monitoring addr
 			} // end if message recv
 		} // end while monitoring active
@@ -248,57 +259,6 @@ int8_t serial_processing(void)
 		// AT command found
 		switch( *(serial_msg_pntr+2) )  // switch on "at" command
 		{
-			case 'a':  // auto receive address on
-				if(*(serial_msg_pntr+3) == 'r')	SETBIT(parameter_bits, AUTO_RECV);
-				if( j1850_req_header[0] & 0x04)  // check for functional or physical addr
-					auto_recv_addr = j1850_req_header[2]; // use physical recv addr
-				else
-					auto_recv_addr = j1850_req_header[1]+1;  // use funct recv addr
-				return J1850_RETURN_CODE_OK ;
-
-			case 'b':  // set Baud rate
-				if( isdigit(*(serial_msg_pntr+3)) )
-				{
-				  switch(*(serial_msg_pntr+3))
-				  {
-					case '0':
-					  UBRRH = BAUD_9600>>8;		// set 9600 Baud
-					  UBRRL = BAUD_9600;
-					  break;
-
-					case '1':
-					  UBRRH = BAUD_14400>>8;		// set 14.4k Baud
-					  UBRRL = BAUD_14400;
-					  break;
-					  
-					case '2':
-					  UBRRH = BAUD_19200>>8;		// set 19.2k Baud
-					  UBRRL = BAUD_19200;
-					  break;
-
-					case '3':
-					  UBRRH = BAUD_28800>>8;		// set 28.8k Baud
-					  UBRRL = BAUD_28800;
-					  break;
-
-					case '4':
-					  UBRRH = BAUD_38400>>8;		// set 38.4k Baud
-					  UBRRL = BAUD_38400;
-					  break;
-
-					case '5':
-					  UBRRH = BAUD_57600>>8;		// set 57.6k Baud
-					  UBRRL = BAUD_57600;
-					  break;
-					
-					default:
-					  UBRRH = DEFAULT_BAUD>>8;		// set default baud rate
-					  UBRRL = DEFAULT_BAUD;
-				  }
-				  return J1850_RETURN_CODE_OK ;
-				}
-				return J1850_RETURN_CODE_UNKNOWN; 
-		
 			case 'd':  // set defaults
 				parameter_bits = HEADER|RESPONSE|AUTO_RECV;
 				timeout_multiplier = 0x19;	// set default timeout to 4ms * 25 = 100ms
@@ -307,91 +267,12 @@ int8_t serial_processing(void)
 				j1850_req_header[2] = 0xF1;  // Frame source = Diagnostic Tool
 				return J1850_RETURN_CODE_OK ;
 		
-			case 'e':  // echo on/off
-				if(*(serial_msg_pntr+3) == '0')
-					CLEARBIT(parameter_bits, ECHO);
-				else
-					SETBIT(parameter_bits, ECHO);
-				return J1850_RETURN_CODE_OK ;
-			
-			case 'i':  // send ident string
-				ident();
-				return J1850_RETURN_CODE_OK ;
-
-			case 'l': // linefeed on/off (only for data strings)
-				if(*(serial_msg_pntr+3) == '0')
-					CLEARBIT(parameter_bits, LINEFEED);
-				else
-					SETBIT(parameter_bits, LINEFEED);
-				return J1850_RETURN_CODE_OK ;			
-
 			case 'h': // show headers on/off
 				if(*(serial_msg_pntr+3) == '0')
 					CLEARBIT(parameter_bits, HEADER);
 				else
 					SETBIT(parameter_bits, HEADER);
 				return J1850_RETURN_CODE_OK ;
-
-			case 'r': // show response on/off
-				if(*(serial_msg_pntr+3) == '0')
-					CLEARBIT(parameter_bits, RESPONSE);
-				else
-					SETBIT(parameter_bits, RESPONSE);
-				return J1850_RETURN_CODE_OK ;
-
-			case 'f': // send formated
-				if(*(serial_msg_pntr+3) == 'd')
-					CLEARBIT(parameter_bits, PACKED);
-				return J1850_RETURN_CODE_OK ;
-
-			case 'o': // one byte header on/off
-				if(*(serial_msg_pntr+3) == '0')
-					CLEARBIT(parameter_bits, USE_OBH);
-				else
-					SETBIT(parameter_bits, USE_OBH);
-				return J1850_RETURN_CODE_OK ;
-
-			case 'p': // send packed data
-				if(*(serial_msg_pntr+3) == 'd')
-					SETBIT(parameter_bits, PACKED);
-				return J1850_RETURN_CODE_OK ;
-
-			case 'm':  // switch into monitoring mode
-				switch(*(serial_msg_pntr+3))
-				{
-					case 'a':
-						SETBIT(parameter_bits, MON_RX);  // monitor all
-						SETBIT(parameter_bits, MON_TX);
-						return J1850_RETURN_CODE_DATA; // return, no following parameter
-            
-					case 'i':
-									CLEARBIT(parameter_bits, MON_TX);
-									CLEARBIT(parameter_bits, MON_RX);
-									SETBIT(parameter_bits, MON_OBH);  // monitor one byte header
-									var_pntr = &mon_transmitter;
-						break;  // get folowing parameter
-            
-					case 'r':  // monitor only receiver addr
-						SETBIT(parameter_bits, MON_RX);  // monitor receiver only
-						CLEARBIT(parameter_bits, MON_TX);
-						var_pntr = &mon_receiver;
-						break;  // get following parameter					
-
-					case 't':  // monitor only transmitter addr
-						CLEARBIT(parameter_bits, MON_RX);
-						SETBIT(parameter_bits, MON_TX);  // monitor transmitter only
-						var_pntr = &mon_transmitter;
-						break;  // get following parameter
-          
-					default:
-						return J1850_RETURN_CODE_UNKNOWN;
-				}
-				if( isxdigit(*(serial_msg_pntr+4)) && isxdigit(*(serial_msg_pntr+5))&&	( serial_msg_len == 6))  // proceed when next two chars are hex
-				{
-				  // make 1 byte hex from 2 chars ASCII and save
-					*var_pntr = ascii2byte(serial_msg_pntr+4);
-					return J1850_RETURN_CODE_DATA;
-				}
 
 			case 's': // commands SH,SR or ST, or SD
 				if(	isxdigit(*(serial_msg_pntr+4)) && isxdigit(*(serial_msg_pntr+5)) )
@@ -460,10 +341,6 @@ int8_t serial_processing(void)
 								
 								return J1850_RETURN_CODE_OK ;
 							}
-								break;
-					
-						case 't':  // set response timeout multipler
-								var_pntr = &timeout_multiplier;
 								break;
 								
 						case 'r':  // set receive address and manual receive mode
