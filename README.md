@@ -7,11 +7,12 @@ Original credits go to Michael at www.mictronics.de. This project has been taken
 ## What is this project?
 The goal behind this project is to build an interface similar to the ELM322 from ElmElectronics (out of business in June 2022). 
 The ELM322, based on a PIC12C509A microcontroler, is a simple J1850-VPW interface that works great with Chrysler PCI bus. It is (or was) a 8 pins chip, easy to integrate in a circuit, requiring minimum hardware:
-* A NTSC 3.5 Mhz crystal.
+* A NTSC 3.5795 Mhz crystal.
 * Some transistors to handle the PCI bus voltage.
 * Either a 8 volts zener diode or voltage regulator to power the PCI bus.
 
-Michael's AVR J1850-VPW interface was based on an ATmega8 microcontroler. This little bugger is more than enough for the task! However it differs from the ELM322 by its pinout and crystal frequency (7.xxx Mhz). While the circuitry around the microcontroler is different in Michael's initial project, the schematic provided by ElmElectronics for the ELM322 works more than fine with this interface. 
+Michael's AVR J1850-VPW interface was based on an ATmega8 microcontroler. 
+This little bugger is more than enough for the task! However it differs from the ELM322 by its pinout and crystal frequency (7.3728 Mhz). While the circuitry around the microcontroler is different in Michael's initial project, the schematic provided by ElmElectronics for the ELM322 works more than fine with this interface. 
 
 ## About the code...
 The code here is basically what Michael wrote in the first place. Only few bits here and there have been updated to, first, match the ELM322 v2.0:
