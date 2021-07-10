@@ -16,6 +16,9 @@
 **  08/05/05     v1.04 Michael  * changed to use Timer1
 **
 **************************************************************************/
+
+#include <stdbool.h>
+
 #ifndef __J1850_H__
 #define __J1850_H__
 
@@ -102,11 +105,14 @@
 #define RX_IFR_LONG_MIN		us2cnt(96)		// minimum long in frame respond pulse time
 #define RX_IFR_LONG_MAX		us2cnt(163)		// maximum long in frame respond pulse time
 
+// Maximum message length if not checking for length
+#define RX_BUFFER_MAX_LEN   64
+
 uint8_t timeout_multiplier;  // default 4ms timeout multiplier
 
 extern void j1850_init(void);
-extern uint8_t j1850_recv_msg(uint8_t *msg_buf );
-extern uint8_t j1850_send_msg(uint8_t *msg_buf, int8_t nbytes);
+extern uint8_t j1850_recv_msg(uint8_t *msg_buf, bool checkLength);
+extern uint8_t j1850_send_msg(uint8_t *msg_buf, int8_t nbytes, bool checkLength);
 extern uint8_t j1850_crc(uint8_t *msg_buf, int8_t nbytes);
 
 static inline void timer1_ctrl(uint8_t val)

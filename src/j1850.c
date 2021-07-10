@@ -29,6 +29,7 @@
 **	deprecated macros to be compatible with the latest version of WinAVR.
 **************************************************************************/
 #include <avr/io.h>
+#include <stdbool.h>
 #include "j1850.h"
 /* 
 **--------------------------------------------------------------------------- 
@@ -85,7 +86,7 @@ static void j1850_wait_idle(void)
 **
 **--------------------------------------------------------------------------- 
 */ 
-uint8_t j1850_recv_msg(uint8_t *msg_buf )
+uint8_t j1850_recv_msg(uint8_t *msg_buf, bool checkLength)
 {
 	uint8_t nbits;			// bit position counter within a byte
 	uint8_t nbytes;		// number of received bytes
@@ -118,7 +119,7 @@ uint8_t j1850_recv_msg(uint8_t *msg_buf )
 	
 	bit_state = is_j1850_active();	// store actual bus state
 	timer1_start();
-	for(nbytes = 0; nbytes < 12; ++nbytes)
+	for(nbytes = 0; nbytes < checkLength ? 12 : RX_BUFFER_MAX_LEN; ++nbytes)
 	{
 		nbits = 8;
 		do
@@ -169,9 +170,9 @@ uint8_t j1850_recv_msg(uint8_t *msg_buf )
 ** 
 **--------------------------------------------------------------------------- 
 */ 
-uint8_t j1850_send_msg(uint8_t *msg_buf, int8_t nbytes)
+uint8_t j1850_send_msg(uint8_t *msg_buf, int8_t nbytes, bool checkLength)
 {
-	if(nbytes > 12)	return J1850_RETURN_CODE_DATA_ERROR;	// error, message to long, see SAE J1850
+	if(nbytes > 12 && checkLength)	return J1850_RETURN_CODE_DATA_ERROR;	// error, message to long, see SAE J1850
 
 	j1850_wait_idle();	// wait for idle bus
 

@@ -27,7 +27,7 @@
 // J1850 message (max 12 byte - 3 byte header - 1 CRC byte) x 2
 // because of 2 ASCII chars/byte + 1 terminator
 // or 10 bytes for AT command
-#define SERIAL_MSG_BUF_SIZE	18
+#define SERIAL_MSG_BUF_SIZE	64
 
 const char ident_txt[]    PROGMEM = "AVR-J1850 VPW v1.08\r" __DATE__" / "__TIME__"\r\r";
 //const char ident_txt[]    PROGMEM = "ELM322 v2.0\r\n\r\n";
@@ -44,16 +44,17 @@ const char stopped[]    PROGMEM = "STOPPED\r";
 #define CHECKBIT(x,y) (x & (y)) 	// Check bit y in byte x
 
 // define parameter bit mask constants 
-#define ECHO 		  0x0001 // bit 0 : Echo on/off
-#define HEADER	  0x0002 // bit 1 : Headers on/off
-#define LINEFEED  0x0004 // bit 2 : Linefeeds on/off
-#define RESPONSE  0x0008 // bit 3 : Responses on/off
-#define PACKED    0x0010 // bit 4 : use packed data
-#define AUTO_RECV 0x0020 // bit 5 : auto receive on/off
+#define ECHO 		0x0001 // bit 0 : Echo on/off
+#define HEADER		0x0002 // bit 1 : Headers on/off
+#define LINEFEED	0x0004 // bit 2 : Linefeeds on/off
+#define RESPONSE	0x0008 // bit 3 : Responses on/off
+#define PACKED		0x0010 // bit 4 : use packed data
+#define AUTO_RECV	0x0020 // bit 5 : auto receive on/off
 #define MON_TX		0x0040 // bit 6 : monitor transmitter
 #define MON_RX		0x0080 // bit 7 : monitor receiver
-#define MON_OBH   0x0100 // bit 8 : monitor one byte header
-#define USE_OBH   0x0200 // bit 9 : use one byte header in Tx message
+#define MON_OBH		0x0100 // bit 8 : monitor one byte header
+#define USE_OBH		0x0200 // bit 9 : use one byte header in Tx message
+#define MSG_LEN		0x0400 // bit 10 : check for message length before sending on the bus
 
 // use of bit-mask for parameters init to default values
 volatile uint16_t parameter_bits = HEADER|RESPONSE|AUTO_RECV;

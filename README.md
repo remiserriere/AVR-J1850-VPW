@@ -20,6 +20,7 @@ The code here is basically what Michael wrote in the first place. Only few bits 
 * New lines (\r and \l if required) have been reorganized to math the ELM322 output. 
 
 On top of that, some features have been improved or added:
+* A new "check for message length" ATC0/1 command allows you to verify if the message's length to be sent on the PCI bus is compliant with the SAE J1850 standard (should be less than 12 bytes long including CRC). This setting is disabled by default.
 * A new "send direct" ATSD command allows you to send an entire message on the bus, where you can define the whole bytes of the message. The header will not be used. In other words you can send "ATSD24402f380201" to trigger the BCM Chime actuator, for example. However this command **does not support read nor wait for an answer form the target module**. It only sends a command. This can be usefull for flooding the bus, or triggering actuators without caring of the answer.
 * The "set header" ATSH command accepts 1-byte headers and automatically configures the chip to run in 1-byte mode,
   * Michael's original code would also require the "1-byte header" ATO command to be set to 1 as well.

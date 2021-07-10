@@ -101,7 +101,7 @@ int16_t main( void )
 			uint8_t *j1850_msg_pntr = &j1850_msg_buf[0];  //  msg pointer
 			int8_t recv_nbytes;  // byte counter		
       
-			recv_nbytes = j1850_recv_msg(j1850_msg_buf);	// get J1850 frame
+			recv_nbytes = j1850_recv_msg(j1850_msg_buf, CHECKBIT(parameter_bits, MSG_LEN));	// get J1850 frame
 		
 			if( !(recv_nbytes & 0x80) ) // proceed only with no errors
 			{
@@ -298,7 +298,14 @@ int8_t serial_processing(void)
 				  return J1850_RETURN_CODE_OK ;
 				}
 				return J1850_RETURN_CODE_UNKNOWN; 
-		
+			
+			case 'c':  // message length check on/off
+				if (*(serial_msg_pntr + 3) == '0')
+					CLEARBIT(parameter_bits, MSG_LEN);
+				else
+					SETBIT(parameter_bits, MSG_LEN);
+				return J1850_RETURN_CODE_OK;
+
 			case 'd':  // set defaults
 				parameter_bits = HEADER|RESPONSE|AUTO_RECV;
 				timeout_multiplier = 0x19;	// set default timeout to 4ms * 25 = 100ms
@@ -418,7 +425,7 @@ int8_t serial_processing(void)
 							j1850_msg_buf[j1850_msg_len] = j1850_crc( j1850_msg_buf,j1850_msg_len );  
 						  
 							// send J1850 message and save return code, use 1 or 3 byte header
-							return j1850_send_msg(j1850_msg_buf, j1850_msg_len +1);
+							return j1850_send_msg(j1850_msg_buf, j1850_msg_len +1, CHECKBIT(parameter_bits, MSG_LEN));
 							 
 						case 'h':  // set header bytes
 							if(
@@ -538,9 +545,9 @@ int8_t serial_processing(void)
 		// send J1850 message and save return code, use 1 or 3 byte header
 		uint8_t return_code;
 		if(CHECKBIT(parameter_bits, USE_OBH)){
-			return_code = j1850_send_msg(j1850_msg_buf, serial_msg_len+2);
+			return_code = j1850_send_msg(j1850_msg_buf, serial_msg_len+2, CHECKBIT(parameter_bits, MSG_LEN));
 		}else{
-			return_code = j1850_send_msg(j1850_msg_buf, serial_msg_len+4);
+			return_code = j1850_send_msg(j1850_msg_buf, serial_msg_len+4, CHECKBIT(parameter_bits, MSG_LEN));
 		}
 		
 		
@@ -557,7 +564,7 @@ int8_t serial_processing(void)
 					or the bus was idle for 100ms or an bus error occured.
 				*/
 			
-				cnt = j1850_recv_msg(j1850_msg_buf);  // receive J1850 respond
+				cnt = j1850_recv_msg(j1850_msg_buf, CHECKBIT(parameter_bits, MSG_LEN));  // receive J1850 respond
 
 				/*
 					the j1850_recv_msg() has a timeout of 100us
