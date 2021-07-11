@@ -1,11 +1,14 @@
 /*************************************************************************
 **  AVR J1850 VPW Interface
+**
 **  by Michael Wolf
-**
-**  Released under GNU GENERAL PUBLIC LICENSE
-**
 **  contact: webmaster@mictronics.de
 **  homepage: www.mictronics.de
+**
+**  Modified by Remi Serriere
+**  GitHub: https://github.com/remiserriere/AVR-J1850-VPW
+**
+**  Released under GNU GENERAL PUBLIC LICENSE
 **
 **  Revision History
 **
@@ -16,6 +19,8 @@
 **                      	        + added ELM322 ID tag
 **	60/06/21	v1.08	Remi S 		* changed default parameters
 **									+ added stopped text for ATMx AT commands 
+**  10/07/21    v1.09   Remi S      + added parameter bit mask for message length checking or not
+**                                  * changed SERIAL_MSG_BUF_SIZE to 128 bytes
 **
 **************************************************************************/
 #ifndef __MAIN_H__
@@ -27,9 +32,9 @@
 // J1850 message (max 12 byte - 3 byte header - 1 CRC byte) x 2
 // because of 2 ASCII chars/byte + 1 terminator
 // or 10 bytes for AT command
-#define SERIAL_MSG_BUF_SIZE	64
+#define SERIAL_MSG_BUF_SIZE	128
 
-const char ident_txt[]    PROGMEM = "AVR-J1850 VPW v1.08\r" __DATE__" / "__TIME__"\r\r";
+const char ident_txt[]    PROGMEM = "AVR-J1850 VPW v1.09\r" __DATE__" / "__TIME__"\r\r";
 //const char ident_txt[]    PROGMEM = "ELM322 v2.0\r\n\r\n";
 
 const char bus_busy_txt[]   PROGMEM = "BUSBUSY\r";

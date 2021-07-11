@@ -1,11 +1,14 @@
 /*************************************************************************
 **  AVR J1850 VPW Interface
+**
 **  by Michael Wolf
-**
-**  Released under GNU GENERAL PUBLIC LICENSE
-**
 **  contact: webmaster@mictronics.de
 **  homepage: www.mictronics.de
+**
+**  Modified by Remi Serriere
+**  GitHub: https://github.com/remiserriere/AVR-J1850-VPW
+**
+**  Released under GNU GENERAL PUBLIC LICENSE
 **
 **  Revision History
 **
@@ -14,6 +17,8 @@
 **	21/01/05  	 v1.01 Michael	* changed us2cnt formula for better precision
 **  05/05/05     v1.03 Michael  * changed integer types
 **  08/05/05     v1.04 Michael  * changed to use Timer1
+**  10/07/21     v1.09 Remi S   * changed j1850 send and receive functions definitions to support message length check parameter
+**                              * define RX_BUFFER_MAX_LEN to 64 (bytes) as a maximum receive buffer length if NOT checking for message length (should be SERIAL_MSG_BUF_SIZE/2)
 **
 **************************************************************************/
 

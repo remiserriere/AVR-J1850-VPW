@@ -1,11 +1,14 @@
 /*************************************************************************
 **  AVR J1850 VPW Interface
+**
 **  by Michael Wolf
-**
-**  Released under GNU GENERAL PUBLIC LICENSE
-**
 **  contact: webmaster@mictronics.de
 **  homepage: www.mictronics.de
+** 
+**  Modified by Remi Serriere
+**  GitHub: https://github.com/remiserriere/AVR-J1850-VPW
+**
+**  Released under GNU GENERAL PUBLIC LICENSE
 **
 **  Revision History
 **
@@ -19,6 +22,7 @@
 **  11/08/05     v1.05 Michael  * changed EOD to EOF after last databyte send
 **	10/10/06     v1.06 Michael	* changed timeout in j1850_recv_msg() back to 100us
 **	08/09/10     v1.07 Michael  * fix an possible issue with TCNT1 when code is ported
+**  10/07/21     v1.09 Remi S   * j1850 send and receive functions now support parameter for checking or not message length
 **
 **	NOTE:
 **	This file is based on code from Bruce D. Lightner.

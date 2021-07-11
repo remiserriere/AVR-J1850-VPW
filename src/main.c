@@ -1,12 +1,14 @@
 /*************************************************************************
 **  AVR J1850 VPW Interface
+**
 **  by Michael Wolf
-**  Modified by Remi Serriere
-**
-**  Released under GNU GENERAL PUBLIC LICENSE
-**
 **  contact: webmaster@mictronics.de
 **  homepage: www.mictronics.de
+**
+**  Modified by Remi Serriere
+**  GitHub: https://github.com/remiserriere/AVR-J1850-VPW
+**
+**  Released under GNU GENERAL PUBLIC LICENSE
 **
 **  Revision History
 **
@@ -31,6 +33,8 @@
 **	20/06/21	 v1.08	Remi S	+ \r and \n reorganized to match ELM327 output as well as ATL AT command
 **								* fixed ATSH 1-byte sets 1-byte header bit automatically
 **								+ AVR-GCC 7.3.0 supported
+**  10/07/21    v1.09   Remi S  + added parameter for message length checking or not
+**                              * changed j1850 receive and send functions calls to integrate message length check parameter
 **								
 **
 **  Used develompent tools (download @ www.avrfreaks.net):
